@@ -72,6 +72,9 @@ tx2 = tx;
 tx = tx/max(abs(tx));
 tx = [bq tx];
 
+figure(15)
+plot(pack)
+
 %figure(26)
 %plot(tx)
 

@@ -17,7 +17,7 @@ fs = 44000; %sampling frequency
 audio_recorder = audiorecorder(fs,24,1);% create the recorder
 
 %attach callback function
-time_value = 2; % how often the function should be called in seconds
+time_value = 6; % how often the function should be called in seconds
 set(audio_recorder,'TimerPeriod',time_value,'TimerFcn',@audioTimerFcn); % attach a function that should be called every second, the function that is called is specified below.
 
 %ADD USER DATA FOR CALLBACK FUNCTION (DO NOT CHANGE THE NAMES OF THESE VARIABLES!)
@@ -57,124 +57,115 @@ function audioTimerFcn(recObj, event, ~)
 disp('Callback triggered')                                         % Number of samples per symbol (choose fs such that fsfd is an integer) [samples/symb]                          % create sinc pulse with span = 6
 
 constellation = [-1-1i, -1+1i, 1+1i, 1-1i];
+N = 432;
 fs = 44000;
 fc = 5000;
+Tsamp = 1/fs;
 M = length(constellation);
 bpsymb = log2(M);
 Rb = 440;
-%disp('3');
 fsymb = Rb/bpsymb;
 Tsamp = 1/fs;
+tau = 1/440; % 
 alpha = 0.35;
 span = 6;
-%disp('4');
 Tsymb = 1/fsymb;
-%BW = (1+alpha)/(2*tau);
+BW = (1+alpha)/(2*tau);
 fsfd = fs/fsymb;
-%disp('2');
+%preamble = [1 1 1 -1 -1 1 -1];     % Length-7 Barker code
+%disp('2')
 
 bq = [1 1 1 1 1 -1 -1 1 1 -1 1 -1 1];
+%cos(pi)
+%disp('3')
 bq = resample(bq, 100, 1);
-
 bq = bq.*cos(fc.*Tsamp.*(1:length(bq)));
-bq = bq/max(abs(bq));
 
-%disp('1');
-
+figure(40)
+plot(bq)
+%('1')
 y = rtrcpuls(alpha, Tsymb, fs, span);
 
 rx = getaudiodata(recObj).';
-%xcorr(rx, bq);
-%figure(10)
-%plot(xcorr(rx,bq))
+
+%rx = rx/max(abs(rx));
+
+rx_temp = rx;
+figure(39)
+subplot(2,2,1)
+plot(rx)
 correl = xcorr(rx, bq);
-%figure(19)
-%subplot(2,2,1)
-%plot(correl)
+subplot(2,2,2)
+plot(correl)    
 [~, I] = max(correl);
-rx = rx(I-length(correl)/2+1300:I-length(correl)/2+45560+1300);
-
-%subplot(2,2,2)
-%plot(rx)
-%disp('kadksa')
+%disp(I)
 %disp(length(rx))
-%disp('8'); 
+rx = rx(I-length(correl)/2+1300:45560+I-length(correl)/2+1300);
+
+subplot(2,2,3)
+plot(rx)
 I_rx = rx.*cos(2.*pi.*fc.*Tsamp.*(0:length(rx)-1));
-%disp('8'); 
 Q_rx = 1i.*rx.*sin(2.*pi.*fc.*Tsamp.*(0:length(rx)-1));
-%disp('123')
-rx = lowpass(I_rx + Q_rx, fc/5, fs);
-%disp('7');  
 
-%disp('456')
-%subplot(2,2,3)
-%plot(real(rx))
-%rx = I_rx + Q_rx;
-%plot(real(rx))
-%title('16QAM Real part of rx after fc and lowpass filter: 10dB SNR')
-
+rx = lowpass(I_rx + Q_rx, fc/10, fs);
 
 MF = fliplr(conj(y));
 MF_out = conv(MF, rx);
-
-
-
-%subplot(2,2,4)
-%plot(real(MF_out))
-%title('16QAM RX after MF: 10dB SNR')
 MF_out = MF_out(2*span*fs*Tsymb  :  end-2*span*fs*Tsymb);
 rx_vec = MF_out(1:fs*Tsymb:end);
-rx_vec = rx_vec/max(abs(rx_vec));
+rx_vec = rx_vec/median(abs(rx_vec));
+subplot(2,2,4)
+plot(real(rx))
+%disp(rx_vec)
+% data_out = {};
+% for point = rx_vec
+%     temp = 10000;
+%     temp2 = 0;
+%     i = 1;
+%     for const = constellation
+%         if(abs(point - const) < temp)
+%             temp = abs(point - const);
+%             temp2 = i;
+%         end
+%         i = i + 1;
+%         
+%     end
+%     data_out = [data_out, temp2];
+% end
 
-%subplot(2,2,4)
-%plot(real(rx_vec))
+rx_vec = transpose(rx_vec);
+constellation = transpose(constellation);
 
+const_rep = repmat(constellation, [1, length(rx_vec)]);
 
-%L = length(s);
-%Y = fft(rx_vec);
+[~, index] = min(transpose(abs(rx_vec - transpose(const_rep))));
 
-%P2 = abs(Y/L);
-%P1 = P2(1:L/2+1);
-%P1(2:end-1) = 2*P1(2:end-1);
-
-%f = freqs*(0:(L/2))/L;
-%figure(3)
-%plot(f, P1)
-%scatterplot(rx_vec);
-data_out = {};
-%disp(length(rx_vec))
-%rx_vec = rx_vec(13:length(rx_vec)-1);
-%disp(length(rx_vec))
-%rx_vec = rx_vec.*exp(1i.*pi.*135/180);
-
-for point = rx_vec
-    temp = 10000;
-    temp2 = 0;
-    i = 1;
-    for const = constellation
-        
-        if(abs(point - const) < temp)
-            temp = abs(point - const);
-            temp2 = i;
-        end
-        i = i + 1;
-    end
-    
-    data_out =[data_out, temp2];
-end
-data_out = cell2mat(data_out)-1;
+test = [0;1;1;0;0;1;0;0;0;1;1;0;0;0;0;1;0;1;1;1;0;0;1;1;0;1;1;0;1;0;1;1;0;1;1;0;0;1;0;0;0;1;1;0;1;1;1;1;0;1;1;0;0;0;0;1;0;1;1;1;0;0;1;1;0;1;1;0;1;0;1;0;0;1;1;0;0;1;0;0;0;1;1;0;1;0;1;0;0;1;1;0;0;0;0;1;0;1;1;0;1;0;0;1;0;1;1;1;0;0;1;1;0;1;1;0;0;1;0;0;0;1;1;0;1;0;1;0;0;1;1;1;0;0;1;1;0;1;1;0;0;0;0;1;0;1;1;0;1;1;0;1;0;1;1;0;0;1;0;0;0;1;1;0;1;0;1;1;0;1;1;0;0;0;0;1;0;1;1;1;0;0;1;1;0;1;1;0;1;0;1;0;0;1;1;0;0;1;0;0;0;1;1;0;1;0;1;1;0;1;1;0;1;0;0;1;0;1;1;0;0;0;0;1;0;1;1;0;1;0;1;0;0;1;1;0;0;1;0;0;0;1;1;0;1;0;0;1;0;1;1;0;1;0;1;0;0;1;1;0;0;0;0;1;0;1;1;0;0;1;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;1;1;1;1;1;0;1;1;1;0;0;1;0;0;1;0;1;1;0;1;1;1;1;1;1;0;1;1;1;0;0];
+%load('file.mat')
+%data_out = cell2mat(data_out)-1;
 
 %disp(sum(data_out))
 
 
 pulse_train = MF_out;
 x = rx_vec;
-%disp(data_out)
-data_out = de2bi(data_out, 'left-msb');
-%disp(data_out)
+%data_out = de2bi(data_out, 'left-msb');
+m = de2bi(index - 1, bpsymb, 'left-msb'); 
+data_out = reshape(m', N, 1);
+disp(size(test))
+disp(size(data_out))
 data_out = data_out(:).';
-%disp(data_out)
-%disp(data_out)
+disp(data_out)
+figure(592)
+subplot(2,1,1)
+plot(test)
+subplot(2,1,2)
+plot(data_out)
+if all(test == data_out.')
+    disp('ok!')
+else
+    disp('not ok')
+end
 %disp(length(data_out))
 
 %------------------------------------------------------------------------------
