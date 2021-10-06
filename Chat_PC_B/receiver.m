@@ -59,7 +59,7 @@ disp('Callback triggered')                                         % Number of s
 constellation = [-1-1i, -1+1i, 1+1i, 1-1i];
 N = 432;
 fs = 44000;
-fc = 5000;
+fc = 6000;
 Tsamp = 1/fs;
 M = length(constellation);
 bpsymb = log2(M);
@@ -92,18 +92,18 @@ rx = getaudiodata(recObj).';
 
 rx_temp = rx;
 figure(39)
-subplot(2,2,1)
-plot(rx)
+%subplot(2,2,1)
+%plot(rx)
 correl = xcorr(rx, bq);
-subplot(2,2,2)
-plot(correl)    
+%subplot(2,2,2)
+%plot(correl)    
 [~, I] = max(correl);
 %disp(I)
 %disp(length(rx))
 rx = rx(I-length(correl)/2+1300:45560+I-length(correl)/2+1300);
 
-subplot(2,2,3)
-plot(rx)
+%subplot(2,2,3)
+%plot(rx)
 I_rx = rx.*cos(2.*pi.*fc.*Tsamp.*(0:length(rx)-1));
 Q_rx = 1i.*rx.*sin(2.*pi.*fc.*Tsamp.*(0:length(rx)-1));
 
@@ -114,8 +114,8 @@ MF_out = conv(MF, rx);
 MF_out = MF_out(2*span*fs*Tsymb  :  end-2*span*fs*Tsymb);
 rx_vec = MF_out(1:fs*Tsymb:end);
 rx_vec = rx_vec/median(abs(rx_vec));
-subplot(2,2,4)
-plot(real(rx))
+%subplot(2,2,4)
+%plot(real(rx))
 %disp(rx_vec)
 % data_out = {};
 % for point = rx_vec
@@ -152,15 +152,15 @@ x = rx_vec;
 %data_out = de2bi(data_out, 'left-msb');
 m = de2bi(index - 1, bpsymb, 'left-msb'); 
 data_out = reshape(m', N, 1);
-disp(size(test))
-disp(size(data_out))
-data_out = data_out(:).';
-disp(data_out)
-figure(592)
-subplot(2,1,1)
-plot(test)
-subplot(2,1,2)
-plot(data_out)
+% disp(size(test))
+% disp(size(data_out))
+% data_out = data_out(:).';
+% disp(data_out)
+% figure(592)
+% subplot(2,1,1)
+% plot(test)
+% subplot(2,1,2)
+% plot(data_out)
 if all(test == data_out.')
     disp('ok!')
 else
